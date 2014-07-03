@@ -1,0 +1,60 @@
+<div id="messages" class="container">
+</div>
+<div id="footer">
+  <div class="container">
+    <div class="row">
+      <div class="col-sm-12">
+        <input id="message-input" class="form-control" />
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="/static/js/jquery.js" type="text/javascript"></script>
+<script src="/static/js/bootstrap.js" type="text/javascript"></script>
+<script src="/static/js/phoenix.js" type="text/javascript"></script>
+<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+  <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+  <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+<![endif]-->
+<script type="text/javascript">
+  $(function(){
+    var socket     = new Phoenix.Socket("ws://" + location.host +  "/ws");
+    var $status    = $("#status");
+    var $messages  = $("#messages");
+    var $input     = $("#message-input");
+    var sanitize   = function(html){ return $("<div/>").text(html).html(); }
+
+    var messageTemplate = function(message){
+      var data = sanitize(atob(message.data));
+      return("<p>" + data +"</p>");
+    }
+
+    socket.join("shell", "shell", {}, function(chan){
+
+      $input.off("keypress").on("keypress", function(e) {
+        if (e.keyCode == 13) {
+          chan.send("shell:stdin", {data: $input.val()});
+          $input.val("");
+        }
+      });
+
+      chan.on("join", function(message){
+        $status.text("connected");
+      });
+
+      chan.on("shell:stdout", function(message){
+        $messages.append(messageTemplate(message));
+        scrollTo(0, document.body.scrollHeight);
+      });
+
+      chan.on("shell:connectd", function(msg){
+        $messages.append("<br/><i>connected...</i>");
+      });
+    });
+  });
+</script>
